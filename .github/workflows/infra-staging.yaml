@@ -2,37 +2,38 @@ name: practicalgitops.staging.infra
 
 on:
   push:
-    branches:
-        - staging
-    paths:
-      - "infra/**"
-      - "!**/README.md"
+    branches: [ "staging**" ]
+    paths: [ "infra/**", "!**/README.md", ".github/workflows/infra-staging.yaml" ]
+  
   pull_request:
-    branches:
-        - staging
-    paths:
-      - "infra/**"
-      - "!**/README.md" 
+    branches: [ "staging/**" ]
+    paths: [ "infra/**", "!**/README.md", ".github/workflows/infra-staging.yaml" ]
+      
+  #workflow_dispatch:
 
+# Permission can be added at job level or workflow level
+permissions:
+  contents: write   # This is required to create/push the new git tag
+  
 jobs:
   terraform:
-    name: "Terraform"
+    name: "Terraform deploy"
     runs-on: ubuntu-latest
     defaults:
       run:  
         working-directory: "infra"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: coldfusionjp/ghaction-checkout-plus@v3
 
       - name: Uncomment Terraform Cloud Backend Configuration file
         id: uncomment
         run: sed -i 's/^#*//' backend.tf
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.1.0
+          terraform_version: 1.7.0
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Terraform Init
@@ -50,7 +51,7 @@ jobs:
         continue-on-error: true
 
       - name: Terraform Plan Output
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
@@ -76,10 +77,10 @@ jobs:
               body: output
             })
 
-      - name: Terraform Plan Status
+      - name: Terraform Plan Status    
         if: steps.plan.outcome == 'failure'
         run: exit 1
-
+  
       - name: Terraform Apply
         if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
         run: terraform apply
