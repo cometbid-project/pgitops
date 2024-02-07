@@ -1,6 +1,6 @@
 # Practical GitOps
 
-## Chapter 7 - Practical GitOps
+## Practical GitOps - Demonstrating Terraform managed Kubernetes cluster deployed to AWS EKS running SpringBoot app
 
 ## Infra
 
